@@ -37,7 +37,7 @@ To synchronize a new bank account, go to :menuselection:`Accounting --> Configur
 instructions on-screen.
 
 .. note::
-   :doc:`Click here <../../bank/feeds/bank_synchronization>` for more information about this bank
+   :doc:`Click here <../../bank/setup/bank_accounts>` for more information about this bank
    synchronization.
 
 .. image:: bank_accounts/bank_accounts_connect.png

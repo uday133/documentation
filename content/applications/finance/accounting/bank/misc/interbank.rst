@@ -1,132 +1,144 @@
-================================================
-Do a bank wire transfer from one bank to another
-================================================
+=================
+Internal Transfer
+=================
 
-A company might have several bank accounts or cash registers. Within
-odoo it is possible to handle internal transfers of money with only a
-couple of clicks.
-
-We will take the following example to illustrate. My company has two
-bank accounts and I want to transfer 50.000 euros from one of our bank
-accounts to the another one.
+In Odoo, a company with at least two bank accounts or cash registers can handle internal money
+transfers in a few clicks.
 
 Configuration
 =============
 
-Check your Chart of Accounts and default transfer account
----------------------------------------------------------
+An internal transfer account is automatically created on your database based on your company
+localization and depending on your country’s legislation. If needed, the default :guilabel:`Internal
+transfer account` can be modified going to :menuselection:`Configuration ‣ Settings` and then under
+the :guilabel:`Default Accounts` section.
 
-To handle internal transfers you need a transfer account in your charts
-of account. Odoo will generate an account automatically based on the
-country of your chart of account. To configure your chart of accounts and
-check the default transfer account go into the accounting module settings,
-select :menuselection:`Configuration --> Settings`.
+.. note::
+   At least two bank accounts are needed to make internal transfers. Please refer to :ref:`this
+   documentation <interbank/import-and-reconcile>` to see how to add an additional bank account to
+   your database.
 
-Your chart of accounts will be pre-installed depending on the country
-specified during your registration, it cannot be changed.
+Register an internal transfer from one bank to another - use case
+=================================================================
 
-.. image:: interbank/interbank04.png
-   :align: center
-
-The default transfer account will automatically be generated as well
-depending on your country's legislation. If necessary it can be modified
-from the same page.
-
-.. image:: interbank/interbank05.png
-   :align: center
-
-Create a second bank account / Journal
---------------------------------------
-
-Before we can register an internal transfer we need to add a new bank to
-our accounting dashboard. To do so enter the accounting module, click on
-:menuselection:`Configuration --> Bank Accounts`. Create a new bank account. You should
-fill in the **Account Number**. You can also create and edit your bank to
-specify your bank's details.
-
-.. image:: interbank/interbank03.png
-   :align: center
-
-By saving the changes you now have 2 bank accounts.
-
-.. image:: interbank/interbank06.png
-   :align: center
-
-Register an internal transfer from one bank to another.
-=======================================================
-
-We will now transfer 50.000 euros from our **Bank** to our **Bank BE57 0633
-9533 1498** account.
+Let's make an internal transfer for a company that has two bank accounts registered on its database.
+We want to make a transfer of 1.000 USD from Bank A to Bank B account.
 
 Log an internal transfer
 ------------------------
 
-The first step is to register the internal payment. To do so go into
-your accounting dashboard, click on the **more** button of one of your banks
-and select :menuselection:`New --> Internal transfer`. 
+From the accounting dashboard, click on ⋮ on one of your banks.  In the :guilabel:`New` column click
+on :guilabel:`Internal Transfer` and enter the information related to the transfer.
 
-.. image:: interbank/interbank01.png
+.. image:: interbank/internal_transfer.png
    :align: center
-
-Create a new payment. The payment type will automatically be set to
-internal transfer. Select the **Bank** you want to transfer to, specify the
-**Amount** and add a **Memo** if you wish.
+   :alt: Fill in the information related to your internal transfer
 
 .. note::
-   The memo is important if you wish to automatically reconcile (see `Import bank statements and
-   reconcile`_).
+   Fill in the :guilabel:`Memo` field for automatic reconciliation.
 
-.. image:: interbank/interbank02.png
+:guilabel:`Save` and :guilabel:`Confirm` to register your internal transfer. The money is now booked
+in the transfer account and another payment is **automatically** created in the destination journal
+(Bank B).
+
+Bank journal (Bank A)
+~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :stub-columns: 1
+
+   * - **Account**
+     - **Debit**
+     - **Credit**
+   * - Outstanding Payments account
+     -
+     - $1.000
+   * - **Internal transfer account**
+     - **$1.000**
+     -
+
+Automated booking - Bank journal (BANK B)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :stub-columns: 1
+
+   * - **Account**
+     - **Debit**
+     - **Credit**
+   * - Outstanding Receipts account
+     - $1.000
+     -
+   * - **Internal transfer account**
+     -
+     - **$1.000**
+
+.. note::
+   There are one outstanding payment and one outstanding receipt pending in your two bank account
+   journals, because we did not book yet the bank statement confirming the sending and receiving of
+   the money.
+
+.. image:: interbank/outstanding-payments-receipts.png
    :align: center
+   :alt: Outstanding Payments/Receipts pending bank statement booking
 
-Save and confirm the changes to register the payment.
-
-In terms of accounting the money is now booked in the transfer account.
-We'll need to import bank statements to book the money in the final
-accounts.
+.. _interbank/import-and-reconcile:
 
 Import bank statements and reconcile
 ------------------------------------
 
-Note that the bank balance computed by Odoo is different that the last
-statement of your bank.
+The next step is to book the bank statements to finalize the transaction. Fill in your
+:guilabel:`Transactions line`. Once done, Odoo displays a :guilabel:`Computed Balance` which is the
+theoretical end balance of your bank account. If it’s corresponding to the bank statement, it means
+that no errors were made. Fill in the :guilabel:`Ending balance` and click on the
+:guilabel:`Reconcile` button.
 
-.. image:: interbank/interbank11.png
+.. image:: interbank/transactions-line.png
    :align: center
+   :alt: Transaction lines to be filled in prior to reconciliation
 
-That is because we did not import the bank statement confirming the
-receiving and sending of the money. It's thus necessary to import your
-bank statement and reconcile the payment with the correct bank statement
-line. Once you receive your bank statements click the **new statement**
-button of the corresponding bank to import them.
+The following window opens and you need to choose counterparts for the payment. In our case, the
+outstanding payment account. Then :guilabel:`Validate`.
 
-.. image:: interbank/interbank07.png
+.. image:: interbank/bank-reconciliation.png
    :align: center
+   :alt: Reconcile your payment
 
-Fill in your **Transactions line**. Once done, Odoo will display a **Computed
-Balance**. that computed balance is the theorical end balance of your
-bank account. If it's corresponding to the bank statement, it means that no errors were
-made. Fill in the **Ending balance** and click on the **Reconcile** button.
+Bank journal entry
+~~~~~~~~~~~~~~~~~~
 
-.. image:: interbank/interbank10.png
-   :align: center
+.. list-table::
+   :header-rows: 1
+   :stub-columns: 1
 
-The following window will open:
+   * - **Account**
+     - **Debit**
+     - **Credit**
+   * - Outstanding Payment
+     - $1.000
+     -
+   * - Bank Account (BANK A)
+     -
+     - **$1.000**
 
-.. image:: interbank/interbank09.png
-   :align: center
+The same steps must be repeated once you receive the bank statement related to bank B. Book and
+reconcile your bank statement lines.
 
-You need to choose counterparts for the payment. Select the correct
-bank statement line corresponding to the payment and click on the 
-**reconcile** button. Close the statement to finish the transaction
+Bank journal entry
+~~~~~~~~~~~~~~~~~~
 
-.. image:: interbank/interbank08.png
-   :align: center
+.. list-table::
+   :header-rows: 1
+   :stub-columns: 1
 
-The same steps will need to be repeated once you receive your second
-bank statement. Note that if you specify the same amount and the
-same memo in both bank statements and payment transactions then the
-reconciliation will happen automatically.
-
-.. image:: interbank/interbank12.png
-   :align: center
+   * - **Account**
+     - **Debit**
+     - **Credit**
+   * - Outstanding Receipt
+     -
+     - $1.000
+   * - Bank Account (BANK B)
+     - **$1.000**
+     -
