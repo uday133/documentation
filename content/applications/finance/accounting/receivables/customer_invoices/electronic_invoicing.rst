@@ -20,8 +20,8 @@ Odoo supports, among others, the following formats.
 
    * - Format Name
      - Applicability
-   * - Factur-X (CII)
-     - Default format on Odoo (enabled by default)
+   * - Factur-X (PDF/A-3)
+     - For French and German companies
    * - Peppol BIS Billing 3.0 (UBL)
      - For companies whose countries are part of the `EAS list
        <https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/>`_
@@ -68,8 +68,10 @@ visible in the attachment section, or embedded in the PDF.
 .. note::
    - For E-FFF, the xml file only appears after having generated the PDF (:guilabel:`Print` or
      :guilabel:`Send & Print` button), since the PDF needs to be embedded inside the xml.
-   - By default, the :guilabel:`Factur-X` option is enabled. It means that an XML file is
-     automatically included in the PDF document that is sent.
+   - Every PDF generated from Odoo contains a **Factur-X XML file** for interoperability purposes.
+   - For German and French companies, the format :guilabel:`Factur-X (PDF/A-3)` is available in
+     addition to Odoo's default Factur-X. This format enables validation checks on the invoice and
+     generates a **PDF/A-3** compliant file, as required by platforms such as Chorus Pro.
    - The formats available depend on the country registered in your company's :guilabel:`General
      Information`.
    - Odoo supports the **Peppol BIS Billing 3.0** format that can be used via existing access
