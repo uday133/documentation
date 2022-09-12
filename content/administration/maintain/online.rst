@@ -36,8 +36,20 @@ Upgrade
 =======
 
 If you are *not* on the latest **Online version**, you should receive an invitation to :doc:`upgrade
-<../upgrade>` your database. A **Rolling Release button** on your database's main screen proposes an
-upgrade to the latest version (e.g., 13.0 to 15.1).
+<../upgrade>` your database. A **Rolling Release button**, represented by an arrow icon pointing up,
+on your database's main screen proposes an upgrade to the latest version (e.g., 14.0 to 15.1).
+
+.. image:: online/rolling-release-button.png
+   :align: center
+   :alt: Click on the rolling release button opens to proceed to the upgrade
+
+By clicking on :guilabel:`Upgrade Now`, you are redirected to your portal. Click on the upgrade icon
+located next to the settings gear wheel. Then, a new window opens where to select the version you
+target.
+
+.. image:: online/upgrade-your-db.png
+   :align: center
+   :alt: Select the upgraded version you target.
 
 .. important::
    - | **If your Odoo database's version is lower than the latest major release:**
