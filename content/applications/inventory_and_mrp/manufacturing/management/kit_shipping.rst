@@ -1,87 +1,65 @@
-=====
-Kits
-=====
+==========
+Using Kits
+==========
 
-A *kit* is a set of components that are not pre-assembled or mixed. This is useful for
-selling but also for creating cleaner and more effective *BOMs*. To use kits, you need 
-both the Manufacturing and Inventory apps to be installed. 
+A *kit* is a set of unassembled components. Kits may be sold as products, but are also useful tools
+for managing more complex bills of materials (BoMs). To use kits, the :guilabel:`Manufacturing` and
+:guilabel:`Inventory` applications need to be installed.
 
-Manage Stock of Component Products
-==================================
+Creating the kit as a product
+=============================
 
-If you want to assemble kits as they are ordered, managing stock of the kit components only, 
-you will use a *Kit BoM* Type without any manufacturing operations. 
+To use a kit as a sellable product or simply as a component organization tool, the kit should first
+be created as a product. To create a kit product, go to :menuselection:`Manufacturing or Inventory
+--> Products --> Products`, then click :guilabel:`Create`.
 
-A product using a *Kit BoM* will appear as a single line item on a quotation and a sales order,
-but will generate a delivery order with one line item for each of the components of the kit. In 
-the examples below, the first image shows a sales order for the kit *Custom Computer Kit*,
-while the second image shows the corresponding delivery order.
+Next, set the :guilabel:`Product Type` to :guilabel:`Storable Product`: this allows for management
+of kit inventory. The :guilabel:`Route` designation under the :guilabel:`Inventory` tab for the kit
+product does not matter, since Odoo uses the routes of the kit’s components for replenishment
+purposes. All other parameters for the kit product may be modified according to preference.
+Finally, click :guilabel:`Save`.
 
-.. image:: kit_shipping/kit-so-line.png
-    :align: center
+The kit’s components require no specific configuration. 
 
-.. image:: kit_shipping/kit-do-picking.png
-    :align: center
+Setting up the kit BoM
+======================
 
-Configuration
-=============
+After fully configuring the kit product and its components, create a BoM for the kit product. Go to
+:menuselection:`Manufacturing --> Products --> Bills of Materials`, then click :guilabel:`Create`.
+Next, set the :guilabel:`BoM Type` to :guilabel:`Kit`. Finally, add each component and specify its
+quantity. Make sure to :guilabel:`Save` the changes.
 
-From the *Products menu* in either the *Inventory* or *Manufacturing* app, create each component 
-product (as you would with any other product), then create the top-level, or kit product. Because
-you cannot track the stock of kit products, the *Product Type* should be set to *Consumable*. 
-However, if you are using Anglo-Saxon accounting, and you would like COGS to be posted when 
-invoicing your kits (and only for this reason), the storable product type should selected instead. 
-Because a kit product cannot be purchased, *Can be Purchased* should be unchecked. The route of the
-kit product in the *Inventory* Tab does not really matter, as, for replenishment, only the route of 
-the components that will be taken into account only. 
+.. image:: kit_shipping/bom-kit-selection.png
+   :align: center
+   :alt: Kit selection on the bill of materials. 
 
-All other parameters on the kit product may be modified according to your preference. The component 
-products require no particular configuration.
+If the kit is solely being used as a sellable product, then only components need to be added, and
+configuring manufacturing operations is not necessary.
 
-Once the products are configured, create a *bill of materials* for the kit product. Add each component
-and its quantity. Select the *BoM Type* Kit. All other options may be left with their default values.
+.. note:: When a kit is sold as a product, it appears as a single line item on the quotation and
+    sales order. However, on delivery orders, each component of the kit is listed. 
 
-.. image:: kit_shipping/kit-bom.png
-    :align: center
+Using kits to manage complex BoMs 
+=================================
 
-Manage Stock of Kit Product and Component Products
-==================================================
+Kits are also used to manage *multilevel BoMs*. These are products that contain other products as
+components and therefore require nested BoMs. Incorporating pre-configured kits into multilevel BoMs
+allows for cleaner organization. List a kit as a component in a higher-level product’s BoM to
+eliminate the need to add the kit’s parts individually, as illustrated below by the Custom Computer
+Kit in the Custom Server BoM.
 
-If you want to manage the stock of the *top-level kit product*, you will use a standard *BoM Type* 
-manufacture or subcontracting instead. In this case you will either buy the final product from your
-subcontractor, or make it yourself through a manufacturing order. 
+.. image:: kit_shipping/multilevel-bom-kit.png
+   :align: center
+   :alt: Kit as a component in a multilevel bill of materials. 
 
-In that case the product type will be storable, and the BOM type either 'Manufacture this product' 
-or 'Subcontracting' as shown below.
+To access a comprehensive overview of the multilevel BoM's components, click on the
+:guilabel:`Structure & Cost` smart button. Sublevel BoMs can be expanded and viewed from this
+report. 
 
-.. image:: kit_shipping/kit-storable.png
-    :align: center
+.. image:: kit_shipping/structure-and-cost-kit.png
+   :align: center
+   :alt: Expanded kit in the Structure and Cost report. 
 
-
-Build a cleaner BOM
-==================== 
-
-As suggested above, a kit BOM can also simply be used to manage a more complex BOM. 
-
-Imagine the Custom Computer parts above were part of another final product. It would be much 
-clearer and simpler if the BOMs were added together (as shown below) instead of adding all 
-the individual parts one by one.
-
-.. image:: kit_shipping/kit-bom4.png
-    :align: center
-
-This is even better illustrated when looking at the BOM Structure Report, where it is 
-easy to expand and hide specific kit level or sub-assembly type BOMs. 
-
-.. image:: kit_shipping/kit-bom5.png
-    :align: center
-
-On the creation of the manufacturing order, the BOM will automatically expand to show all
-top level and kit level components. You can go back to the BOM at any point though as it 
-remains  available on the form view of your manufacturing order. 
-
-.. image:: kit_shipping/kit-bom6.png
-    :align: center
-
-Finally, note that if there were any Operations in the Kit BOM, these would also simply be added 
-in to the work order list of the main component. 
+When creating a manufacturing order for a product with a multilevel BoM, the kit product
+automatically expands to show all components. Any operations in the kit’s BoM are also added to the
+list of work orders on the manufacturing order. 
