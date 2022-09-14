@@ -14,6 +14,7 @@ Payment providers (credit cards, online payments)
    payment_providers/asiapay
    payment_providers/authorize
    payment_providers/buckaroo
+   payment_providers/demo_payment_provider
    payment_providers/flutterwave
    payment_providers/mercado_pago
    payment_providers/mollie
@@ -151,6 +152,19 @@ Online payment providers
    control process.
 
 .. _payment_providers/bank_payments:
+
+Demo payment provider
+---------------------
+
+In addition to the regular payment providers that integrate with an API such as Stripe, PayPal, or
+Adyen, Odoo bundles the :doc:`module <../../../applications/general/apps_modules>` **payment_demo**
+and the payment provider **Demo**. This payment provider allows making demo payments to test
+business flows involving online payments. No credentials are required as the demo payments are fake.
+
+In addition to the features listed :ref:`below <payment_providers/features>`, the demo payment
+provider also allows to select the outcome of a payment, update the transaction’s state from its
+form view, and add customer fees. Click :doc:`here <payment_providers/demo_payment_provider>`  to
+access the demo provider’s documentation.
 
 Bank payments
 -------------
@@ -387,6 +401,7 @@ payment method... What best suit your needs.
    - :doc:`payment_providers/authorize`
    - :doc:`payment_providers/asiapay`
    - :doc:`payment_providers/buckaroo`
+   - :doc:`payment_providers/demo_payment_provider`
    - :doc:`payment_providers/mercado_pago`
    - :doc:`payment_providers/mollie`
    - :doc:`payment_providers/ogone`
