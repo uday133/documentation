@@ -1,11 +1,13 @@
 :custom-css: performance.css
 
-=========================
-Performance and profiling
-=========================
+===========
+Performance
+===========
 
 How to make a piece of code run as fast as possible? This page will hopefully give tips and tools to
 achieve this goal.
+
+.. _performance/profiling:
 
 Profiling
 =========
@@ -18,10 +20,11 @@ during execution.
 Profiling tools can either be used to profile all requests made to the server for a specific user
 session, or be used manually by a developer to profile some part of the code.
 
-In both cases, different collectors are available. A :ref:`collector <performances/collectors>` is
-specialized to collect some piece of information in a standard format (SQL, traces...) and, for
-some of them, a custom :ref:`execution context <performances/execution_context>` can be added by the
-developers to create virtual levels of stack and add extra information.
+In both cases, different collectors are available. A :ref:`collector
+<performance/profiling/collectors>` is specialized to collect some piece of information in a
+standard format (SQL, traces...) and, for some of them, a custom :ref:`execution context
+<performance/profiling/execution_context>` can be added by the developers to create virtual levels
+of stack and add extra information.
 
 Even if the profiling tools are designed to be as light as possible, they can still impact
 performance, which means that results must me interpreted wisely.
@@ -32,8 +35,10 @@ inspected with the integrated SpeedScope view.
 .. image:: performance/flamegraph_example.png
    :align: center
 
-Profiling requests from the user interface
-------------------------------------------
+.. _performance/profiling/user_interface:
+
+Profiling from the user interface
+---------------------------------
 
 This is the easiest way to profile in Odoo but it focuses only on web flows since only requests can
 be profiled this way.
@@ -55,15 +60,16 @@ For production databases, it is advised to choose the shorter period possible. O
 use is able to enable profiling for their session.
 
 Open the debug menu again and enable the profiling again. Three :ref:`collectors
-<performances/collectors>` are available:
+<performance/profiling/collectors>` are available:
 
 - `sql`
 - `traces`
 - `qweb`
 
 The SyncCollector is not available on purpose. By default, The :ref:`SqlCollector
-<performances/collectors/sql>` and :ref:`PeriodicCollector <performances/collectors/periodic>` are
-enabled. Beside the collectors, two options are available:
+<performance/profiling/collectors/sql>` and :ref:`PeriodicCollector
+<performance/profiling/collectors/periodic>` are enabled. Beside the collectors, two options are
+available:
 
 - Interval: Used by the periodic collector to define intervals between two samples.
 - Add qweb directive context: Adds execution context when entering/exiting qweb directive. Useful
@@ -104,8 +110,10 @@ depending on what was profiled. By default with both `sql` and `traces`:
   could be batched.
 - The frames view displays the results of the Periodic collector only.
 
-Using profiler in Python code
------------------------------
+.. _performance/profiling/python:
+
+Profiling from Python code
+--------------------------
 
 Using the profiler manually can be convenient to profile a specific method or a part of the code.
 It can be a test, a compute method, or the entire loading. The profiler is a context manager that
@@ -118,7 +126,7 @@ Without any parameter, the Profiler enables the `sql`, `traces`, and `save` prof
 database, just like when enabling them from the interface.
 
 It is possible to configure the profiler with the `collectors` parameter: a list of string and/or
-:ref:`collector <performances/collectors>` objects.
+:ref:`collector <performance/profiling/collectors>` objects.
 
 .. code-block:: python
 
@@ -152,8 +160,10 @@ especially useful when using the `@warmup` en `@users` decorators.
 Note that, in this example, the profiler is outside of the assertQueryCount in order to catch
 queries made when exiting the context manager (flush...).
 
-Good to know
-------------
+.. _performance/profiling/pitfalls:
+
+Performance pitfalls
+--------------------
 
 - Be careful about *randomness*. Multiple executions may lead to different results. E.g., A garbage
   collector being triggered during execution.
@@ -171,31 +181,36 @@ Good to know
   results which can lead to an HTTP 500 error. In this case, you may need to start the server with
   a higher memory limit: `--limit-memory-hard $((8*1024**3))`.
 
-.. _performances/collectors:
+.. _performance/profiling/collectors:
 
 Collectors
 ----------
 
 There are currently 4 main collectors available (3 of them being available from the interface): the
-:ref:`SqlCollector <performances/collectors/sql>`, the :ref:`PeriodicCollector
-<performances/collectors/periodic>`, the :ref:`SyncCollector <performances/collectors/sync>`, and
-the :ref:`QwebCollector <performances/collectors/qweb>`.
+:ref:`SqlCollector <performance/profiling/collectors/sql>`, the :ref:`PeriodicCollector
+<performance/profiling/collectors/periodic>`, the :ref:`SyncCollector
+<performance/profiling/collectors/sync>`, and the :ref:`QwebCollector
+<performance/profiling/collectors/qweb>`.
 
-.. _performances/collectors/sql:
+.. _performance/profiling/collectors/sql:
 
-SqlCollector (`sql`)
-~~~~~~~~~~~~~~~~~~~~
+SQL Collector
+~~~~~~~~~~~~~
+
+TODO: key=`sql`, class=`SqlCollector`
 
 The SQL collector saves all SQL queries made to the database in the current thread (for all cursors)
 as well as the stack trace. This is especially useful to debug query counts, or add information to
-the :ref:`PeriodicCollector <performances/collectors/periodic>` in the combined SpeedScope view. The
-overhead of the collector is added for each query to the analysed thread, meaning that using this
-collector on a lot of small queries may impact execution time and other profilers.
+the :ref:`PeriodicCollector <performance/profiling/collectors/periodic>` in the combined SpeedScope
+view. The overhead of the collector is added for each query to the analysed thread, meaning that
+using this collector on a lot of small queries may impact execution time and other profilers.
 
-.. _performances/collectors/periodic:
+.. _performance/profiling/collectors/periodic:
 
-PeriodicCollector (`traces_async`)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Periodic Collector
+~~~~~~~~~~~~~~~~~~
+
+TODO: key=`traces_async`, class=`PeriodicCollector`
 
 This Collector runs in a separate thread and saves the stack trace of the analysed thread at every
 interval. This is one of the best way to analyse performances, as it should have a very low impact
@@ -203,19 +218,23 @@ on the execution. The frequency (defined by the interval parameter) must be chos
 and you may lose information, too high and you may have memory issues with long requests. The
 default interval is 10 ms.
 
-.. _performances/collectors/sync:
+.. _performance/profiling/collectors/sync:
 
-SyncCollector (`traces_sync`)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sync Collector
+~~~~~~~~~~~~~~
+
+TODO: key=`traces_sync`, class=`SyncCollector`
 
 This collector saves the stack for every function call and return. It is useless for performances
 analysis since the overhead of using it is high, but it can be useful to understand complex flows
 and follow the execution of some code, mainly for debugging.
 
-.. _performances/collectors/qweb:
+.. _performance/profiling/collectors/qweb:
 
-QwebCollector (`qweb`)
-~~~~~~~~~~~~~~~~~~~~~~
+QWeb Collector
+~~~~~~~~~~~~~~
+
+TODO: key=`qweb`, class=`QwebCollector`
 
 This collector is mainly useful for optimizing views. It saves the Python execution time and queries
 of all directive. As for the SQL collector, the overhead can be important when executing a lot of
@@ -224,7 +243,7 @@ collected data, and can be analysed from the `ir.profile` view form using a cust
 
 It is also possible to create custom collectors as far as they respect the current collector API.
 
-.. _performances/execution_context:
+.. _performance/profiling/execution_context:
 
 Execution context
 -----------------
@@ -248,11 +267,15 @@ This example adds the name of the currently installed/loaded module in the execu
 
 TODO XDO explain how can be used in loading.py
 
+.. _performance/good_practices:
+
 Good practices
 ==============
 
-Batch operation when you can
-----------------------------
+.. _performance/good_practices/batch:
+
+Batch operations
+----------------
 
 When working with recordsets, it is almost always better to batch operations.
 
@@ -330,8 +353,10 @@ the `with_prefetch` method can help achieve the same goal.
    for values in values_list:
        message = self.browse(values['id']).with_prefetch(self.ids)
 
-Algorithmic complexity (basics)
--------------------------------
+.. _performance/good_practices/algorithmic_complexity:
+
+Algorithmic complexity
+----------------------
 
 Algorithmic complexity is a measure of how long an algorithm would take to complete given an input
 of size n
@@ -398,8 +423,10 @@ or
        if record.id in invalid_ids:
            ...
 
-Index critical column
----------------------
+.. _performance/good_practices/index:
+
+Use indexes
+-----------
 
 If your code performs a search on some criteria, or if the user needs to search on a field, it may
 be a good idea to index the column.
