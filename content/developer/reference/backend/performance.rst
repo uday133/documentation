@@ -4,280 +4,323 @@
 Performance
 ===========
 
-How to make a piece of code run as fast as possible? This page will hopefully give tips and tools to
-achieve this goal.
-
 .. _performance/profiling:
 
 Profiling
 =========
 
-The first step when trying to optimize some flow is to understand where the code spends time.
+.. currentmodule:: odoo.tools.profiler
 
-Odoo provides integrated profiling tools, allowing to save all executed queries and/or stack_traces
-during execution.
+Profiling is about analysing the execution of a program and measure aggregated data. These data can
+be the elapsed time for each function, the memory used, the executed SQL queries...
 
-Profiling tools can either be used to profile all requests made to the server for a specific user
-session, or be used manually by a developer to profile some part of the code.
+While profiling does not improve the performance of a program by itself, it can prove very helpful
+in finding performance issues and identifying which part of the program is responsible for them.
 
-In both cases, different collectors are available. A :ref:`collector
-<performance/profiling/collectors>` is specialized to collect some piece of information in a
-standard format (SQL, traces...) and, for some of them, a custom :ref:`execution context
-<performance/profiling/execution_context>` can be added by the developers to create virtual levels
-of stack and add extra information.
+Odoo provides an integrated profiling tool that allows recording all executed queries and stack
+traces during execution. It can be used to profile either a set of requests of a user session, or a
+specific portion of code. Profiling results can be either inspected with the integrated `speedscope
+<https://github.com/jlfwong/speedscope>`_ :dfn:`open source app allowing to visualize a flamegraph`
+view or analyzed with custom tools by first saving them in a JSON file or in the database.
 
-Even if the profiling tools are designed to be as light as possible, they can still impact
-performance, which means that results must me interpreted wisely.
+.. _performance/profiling/enable:
 
-Results can be either analyzed with custom tools (saved in a JSON file or in the database), or
-inspected with the integrated SpeedScope view.
+Enable the profiler
+-------------------
 
-.. image:: performance/flamegraph_example.png
-   :align: center
+The profiler can either be enabled from the user interface, which is the easiest way to do so but
+allows profiling only web requests, or from Python code, which allows profiling any piece of code
+including tests.
 
-.. _performance/profiling/user_interface:
+.. tabs::
 
-Profiling from the user interface
----------------------------------
+   .. tab:: Enable from the user interface
 
-This is the easiest way to profile in Odoo but it focuses only on web flows since only requests can
-be profiled this way.
+      #. :ref:`Enable the developer mode <developer-mode>`.
+      #. Before starting a profiling session, the profiler must be enabled globally on the database.
+         This can be done in two ways:
 
-The first thing to know is that enabling profiling on a request may impact server load since each
-request will have extra work processing the profiler result and profiling results uses some storage.
-This is why this option must be enabled in the database settings for a certain period of time. When
-enabled on the database, all users can enable the profiler for their own session. Profiling stays
-active on the session until explicitly disabled, or if the limit set in the database settings is
-reached. Odoo Online (SaaS) instances cannot be profiled.
+         - Open the :ref:`developer mode tools <developer-mode/mode-tools>`, then toggle the
+           :guilabel:`Enable profiling` button. A wizard suggests a set of expiry times for the
+           profiling. Click on :guilabel:`ENABLE PROFILING` to enable the profiler globally.
 
-When logged as admin, trying to enable profiling on the session will show a wizard to help user
-enabling profiling. This can also be done manually going in the settings in debug mode.
+           .. image:: performance/enable_profiling_wizard.png
 
-.. image:: performance/enable_profiling_wizard.png
-   :align: center
+         - Go to :guilabel:`Settings --> General Settings --> Performance` and set the desired time to
+           the field :guilabel:`Enable profiling until`.
 
-For production databases, it is advised to choose the shorter period possible. Once it is done, any
-user is able to enable profiling for their session.
+      #. After the profiler is enabled on the database, users can enable it on their session. To do
+         so, toggle the :guilabel:`Enable profiling` button in the :ref:`developer mode tools
+         <developer-mode/mode-tools>` again. By default, the recommended options :guilabel:`Record
+         sql` and :guilabel:`Record traces` are enabled. To learn more about the different options,
+         head over to :ref:`performance/profiling/collectors`.
 
-Open the debug menu again and enable the profiling again. Three :ref:`collectors
-<performance/profiling/collectors>` are available:
+         .. image:: performance/profiling_debug_menu.png
 
-TODO: use complete names
+      When the profiler is enabled, all the requests made to the server are profiled and saved into
+      an `ir.profile` record. Such records are grouped into the current profiling session which
+      spans from when the profiler was enabled until it is disabled.
 
-- `sql`
-- `traces`
-- `qweb`
+      .. note::
+         Odoo Online (SaaS) databases cannot be profiled.
 
-The SyncCollector is not available on purpose. By default, The :ref:`SqlCollector
-<performance/profiling/collectors/sql>` and :ref:`PeriodicCollector
-<performance/profiling/collectors/periodic>` are enabled. Beside the collectors, two options are
-available:
+   .. tab:: Enable from Python code
 
-- Interval: Used by the periodic collector to define intervals between two samples.
-- Add qweb directive context: Adds execution context when entering/exiting qweb directive. Useful
-  for the `sql` and `traces` collectors, but adds an overhead to directives.
+      Starting the profiler manually can be convenient to profile a specific method or a part of the
+      code. This code can be a test, a compute method, the entire loading, etc.
 
-.. image:: performance/profiling_debug_menu.png
-   :align: center
+      To start the profiler from Python code, call it as a context manager. You may specify *what*
+      you want to record through the parameters. A shortcut is available for profiling test classes:
+      :code:`self.profiler()`. See :ref:`performance/profiling/collectors` for more information on
+      the `collectors` parameter.
 
-Disabling the `sql` collector will give results closer to an execution without profiling but the
-executed queries wont be available. Keeping the two collectors is a good compromise but keep this in
-mind while analyzing the results.
+      .. example::
 
-Once enabled, all requests to the server will be profiled and saved into an `ir.profile` record,
-grouped into the current profile session. Once finished, disable the profiling and access the result
-using the top tight icon.
+         .. code-block:: python
+
+            with Profiler():
+                do_stuff()
+
+      .. example::
+
+         .. code-block:: python
+
+            with Profiler(collectors=['sql', PeriodicCollector(interval=0.1)]):
+                do_stuff()
+
+      .. example::
+
+         .. code-block:: python
+
+            with self.profiler():
+                with self.assertQueryCount(__system__=1211):
+                    do_stuff()
+
+         .. note::
+            The profiler is called outside of the `assertQueryCount` in order to catch queries made
+            when exiting the context manager (e.g., flush).
+
+      .. autoclass:: Profiler()
+         :members:
+         :special-members: __init__
+
+      .. TODO XDO move to docstring if not clear enough already, otherwise remove.
+         - The `db` parameter is mainly useful in low level contexts where the database cannot be detected
+         automatically on the thread, or to disable the automatic creation of an `ir.profile` record with
+         `db=None`.
+         - The profiler can automatically disable garbage collection when used programmatically. This can be
+         useful for long executions during which garbage collection activation may be randomly triggered,
+         especially during external calls like those to `postgresql`, thus showing unexpectedly slow calls.
+
+      When the profiler is enabled, all executions of a test method are profiled and saved into an
+      `ir.profile` record. Such records are grouped into a single profiling session. This is
+      especially useful when using the :code:`@warmup` and :code:`@users` decorators.
+
+.. _performance/profiling/analyse:
+
+Analyse the results
+-------------------
+
+To browse the profiling results, open the :ref:`developer mode tools <developer-mode/mode-tools>`
+and click on the button in the top-right corner of the profiling section. A list view of the
+`ir.profile` records grouped by profiling session opens.
 
 .. image:: performance/profiling_web.png
    :align: center
 
-In this example we profiled the `/web` page will all related resources. From this list, you can
-access the `speedscope <https://github.com/jlfwong/speedscope>`_ :dfn:`an open source app allowing
-to visualize a flamegraph` results.
+Each record has a clickable link that opens the speedscope results in a new tab.
 
-.. tip::
-   Speedscope falls out of the scope of this documentation but there are a lot of tools to try:
-   search, highlight of similar frames, zoom on frame, timeline, left heavy, sandwich view...
+.. image:: performance/flamegraph_example.png
+   :align: center
 
-Regarding the results generated by odoo, we can note that the top menu offers different view modes
-depending on what was profiled. By default with both `sql` and `traces`:
+Speedscope falls out of the scope of this documentation but there are a lot of tools to try: search,
+highlight of similar frames, zoom on frame, timeline, left heavy, sandwich view...
+
+Depending on the profiling options that were activated, Odoo generates different view modes that you
+can access from the top menu.
 
 .. image:: performance/speedscope_modes.png
    :align: center
 
-- The combined view shows SQL queries and traces merged togethers.
-- The combined no context shows the same result but ignores saved execution_context.
-- The SQL (no gap) view represents all SQL queries as if they were executed after each other,
-  without any Python logic. This is useful for optimizing SQL only.
-- The SQL (density) view represent SQL queries only, leaving gap between them. This can be useful to
-  spot if eiter SQL or Python is the problem, and to identify zones in where many small queries
-  could be batched.
-- The frames view displays the results of the Periodic collector only.
+- The :guilabel:`Combined` view shows all the SQL queries and traces merged togethers.
+- The :guilabel:`Combined no context` view shows the same result but ignores the saved
+  :ref:`execution context <performance/profiling/execution_context>`.
+- The :guilabel:`sql (no gap)` view shows all the SQL queries as if they were executed one after
+  another, without any Python logic. This is useful for optimizing SQL only.
+- The :guilabel:`sql (density)` view shows only all the SQL queries, leaving gap between them. This
+  can be useful to spot if eiter SQL or Python code is the problem, and to identify zones in where
+  many small queries could be batched.
+- The :guilabel:`frames` view shows the results of only the :ref:`periodic collector
+  <performance/profiling/collectors/periodic>`.
 
-.. _performance/profiling/python:
-
-Profiling from Python code
---------------------------
-
-Using the profiler manually can be convenient to profile a specific method or a part of the code.
-It can be a test, a compute method, or the entire loading. The profiler is a context manager that
-takes parameters to define what to record.
-
-.. automodule:: odoo.tools.profiler
-   :members: Profiler
-
-Without any parameter, the Profiler enables the SQL and Periodic collector, and saves the
-`ir.profile` records on the database, just like when enabling them from the interface.
-
-It is possible to configure the profiler with the `collectors` parameter: a list of string and/or
-:ref:`collector <performance/profiling/collectors>` objects.
-
-.. example::
-   .. code-block:: python
-
-      with Profiler(collectors=['sql', PeriodicCollector(interval=0.1)]):
-          ...
-
-      with Profiler(collectors=['qweb']):
-          ...
-
-The `db` parameter is mainly useful in low level contexts where the database cannot be detected
-automatically on the thread, or to disable the automatic creation of an `ir.profile` record with
-`db=None`.
-
-The profiler can automatically disable garbage collection when used programmatically. This can be
-useful for long executions during which garbage collection activation may be randomly triggered,
-especially during external calls like those to `postgresql`, thus showing unexpectedly slow calls.
-
-Profiling tests
-~~~~~~~~~~~~~~~
-
-A shortcut is available for profiling test classes: :code:`self.profiler()`.
-
-.. example::
-   .. code-block:: python
-
-      with self.profiler():
-          with self.assertQueryCount(__system__=1211):
-              ...
-
-   .. note::
-      The profiler called outside of the `assertQueryCount` in order to catch queries made when
-      exiting the context manager (e.g., flush).
-
-All executions of a test method are grouped under the same profiling session, and the `ir.profile`
-record is named with regard to the test state. This is especially useful when using the `@warmup`
-and `@users` decorators.
-
-.. _performance/profiling/pitfalls:
-
-Performance pitfalls
---------------------
-
-TODO: move further below
-
-- Be careful about *randomness*. Multiple executions may lead to different results. E.g., a garbage
-  collector being triggered during execution.
-- Be careful with blocking calls. In some cases, external c_call may take some time before releasing
-  the GIL, thus leading to unexpected long frames with the PeriodicCollector. This should be
-  detected by the profiler and give a warning. It is possible to trigger the profiler manually
-  before such calls if needed.
-- Pay attention to the cache. Profiling before that the view/assets/... are in cache can lead to
-  different results.
-- Be aware of profiler overhead. The `sql` profiler's overhead can be important when a lot of small
-  queries are executed. Profiling is practical to spot a problem but you may want to disable the
-  profiler in order to measure the real impact of a code change.
-- Profiling results can be memory intensive. In some cases (e.g., profiling an install or a long
-  request), it is possible that you reach memory limit, especially when rendering the speedscope
-  results which can lead to an HTTP 500 error. In this case, you may need to start the server with
-  a higher memory limit: `--limit-memory-hard $((8*1024**3))`.
+.. important::
+   Even though the profiler has been designed to be as light as possible, it can still impact
+   performance, especially when using the :ref:`Sync collector
+   <performance/profiling/collectors/sync>`. Keep that in mind when analyzing speedscope results.
 
 .. _performance/profiling/collectors:
 
 Collectors
 ----------
 
-There are currently 4 collectors available: the :ref:`SQL <performance/profiling/collectors/sql>`,
-:ref:`Periodic <performance/profiling/collectors/periodic>`, :ref:`Sync
-<performance/profiling/collectors/sync>`, and :ref:`QWeb <performance/profiling/collectors/qweb>`
-collectors.
+Whereas the profiler is about the *when* of profiling, the collectors take care of the *what*.
+
+Each collector specializes in collecting profiling data in its own format and manner. They can be
+individually enabled from the user interface through their dedicated toggle button in the
+:ref:`developer mode tools <developer-mode/mode-tools>`, or from Python code through their key or
+class.
+
+There are currently four collectors available in Odoo:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Name
+     - Toggle button
+     - Python key
+     - Python class
+   * - :ref:`SQL collector <performance/profiling/collectors/sql>`
+     - :guilabel:`Record sql`
+     - `sql`
+     - `SqlCollector`
+   * - :ref:`Periodic collector <performance/profiling/collectors/periodic>`
+     - :guilabel:`Record traces`
+     - `traces_async`
+     - `PeriodicCollector`
+   * - :ref:`QWeb collector <performance/profiling/collectors/qweb>`
+     - :guilabel:`Record qweb`
+     - `qweb`
+     - `QwebCollector`
+   * - :ref:`Sync collector <performance/profiling/collectors/sync>`
+     - No
+     - `traces_sync`
+     - `SyncCollector`
+
+By default, the profiler enables the SQL and the Periodic collectors. Both when it is enabled from
+the user interface or Python code.
+
+.. TODO
+      The SyncCollector is not available on purpose.
+      Beside the collectors, two options are
+      available:
+      -
+      - Add qweb directive context: Adds execution context when entering/exiting qweb directive. Useful
+        for the `sql` and `traces` collectors, but adds an overhead to directives.
+      Disabling the `sql` collector will give results closer to an execution without profiling but the
+      executed queries wont be available. Keeping the two collectors is a good compromise but keep this in
+      mind while analyzing the results.
 
 .. _performance/profiling/collectors/sql:
 
 SQL collector
 ~~~~~~~~~~~~~
 
-TODO: key=`sql`, class=`SqlCollector`
+The SQL collector saves all the SQL queries made to the database in the current thread (for all
+cursors), as well as the stack trace. The overhead of the collector is added to the analysed thread
+for each query, which means that using it on a lot of small queries may impact execution time and
+other profilers.
 
-The SQL collector saves all SQL queries made to the database in the current thread (for all cursors)
-as well as the stack trace. This is especially useful to debug query counts, or to add information
-to the :ref:`performance/profiling/collectors/periodic` in the combined speedscope view. The
-overhead of the collector is added for each query to the analysed thread, meaning that using this
-collector on a lot of small queries may impact execution time and other profilers.
+It is especially useful to debug query counts, or to add information to the :ref:`Periodic collector
+<performance/profiling/collectors/periodic>` in the combined speedscope view.
+
+.. autoclass:: SQLCollector
 
 .. _performance/profiling/collectors/periodic:
 
 Periodic collector
 ~~~~~~~~~~~~~~~~~~
 
-TODO: key=`traces_async`, class=`PeriodicCollector`
-
 This collector runs in a separate thread and saves the stack trace of the analysed thread at every
-interval. This is one of the best way to analyse performances, as it should have a very low impact
-on the execution time. The frequency (defined by the `interval` parameter) must be set wisely: too
-low and you may lose information, too high and you may have memory issues with long requests. The
-default for `interval` is 10 ms.
+interval. The interval (by default 10 ms) can be defined through the :guilabel:`Interval` option in
+the user interface, or the `interval` parameter in Python code.
 
-.. _performance/profiling/collectors/sync:
+.. warning::
+   If the interval is set at a very low value, profiling long requests will generate memory issues.
+   If the interval is set at a very high value, information on short function executions will be
+   lost.
 
-Sync collector
-~~~~~~~~~~~~~~
+It is one of the best way to analyse performance as it should have a very low impact on the
+execution time thanks to its separate thread.
 
-TODO: key=`traces_sync`, class=`SyncCollector`
-
-This collector saves the stack for every function call and return. It is not recommended for
-performance analysis because the overhead is high. It can however be useful to understand complex
-flows and follow the execution of some code, mainly for debugging.
+.. autoclass:: PeriodicCollector
 
 .. _performance/profiling/collectors/qweb:
 
 QWeb collector
 ~~~~~~~~~~~~~~
 
-TODO: key=`qweb`, class=`QwebCollector`
+This collector saves the Python execution time and queries of all directives. As for the :ref:`SQL
+collector <performance/profiling/collectors/sql>`, the overhead can be important when executing a
+lot of small directives. The results are different from other collectors in terms of collected data,
+and can be analysed from the `ir.profile` form view using a custom widget.
 
-This collector is mainly useful for optimizing views. It saves the Python execution time and queries
-of all directive. As for the :ref:`performance/profiling/collectors/sql`, the overhead can be
-important when executing a lot of small directives. Qweb collector's results are different from
-other collectors in terms of collected data, and can be analysed from the `ir.profile` form view
-using a custom widget.
+It is mainly useful for optimizing views.
+
+.. autoclass:: QwebCollector
+
+.. _performance/profiling/collectors/sync:
+
+Sync collector
+~~~~~~~~~~~~~~
+
+This collector saves the stack for every function's call and return and runs on the same thread,
+which greatly impacts performance.
+
+It can be useful to debug and understand complex flows, and follow their execution in the code. It
+is however not recommended for performance analysis because the overhead is high.
+
+.. autoclass:: SyncCollector
 
 .. _performance/profiling/execution_context:
 
 Execution context
 -----------------
 
-Stack traces can be useful to understand where the program was at some point when no information
-about the state of the memory is available. This can be problematic when profiling code inside
-loops where everything seems to be part of the same block of execution, even if only one iteration
-is slower than the others. When displayed with speedscope, the execution context appears as
-additional levels in the stack.
+It can be problematic to profile code inside loops where everything seems to be part of the same
+execution block, even if only one iteration is slower than the others. Stack traces can be helpful
+in understanding where the program was at some point when no information about the state of the
+memory is available. This is where the execution context comes in handy.
 
-TODO XDO screenshot for the execution context
+Execution contexts are dictionaries mapped to some level of the stack saved on the thread. They
+allow providing information to collectors.
 
-Execution contexts are dictionaries mapped to some level of the stack saved on the thread. This
-allows to provide information to collectors. An helper context manager is available for that.
+To define an execution context, call it as a context manager.
 
 .. example::
    .. code-block:: python
 
       for index, package in enumerate(graph, 1):
+          # Add the name of the currently installed/loaded module in the execution context.
           with ExecutionContext(module_name = package.name):
               module_name = package.name
 
-   This example adds the name of the currently installed/loaded module in the execution context.
+   .. TODO XDO explain how that can be used in loading.py
 
-   TODO XDO explain how can be used in loading.py
+When displayed with speedscope, the execution context appears as additional levels in the stack.
+
+.. TODO XDO screenshot for the execution context
+
+.. _performance/profiling/pitfalls:
+
+Performance pitfalls
+--------------------
+
+- Be careful with randomness. Multiple executions may lead to different results. E.g., a garbage
+  collector being triggered during execution.
+- Be careful with blocking calls. In some cases, external `c_call` may take some time before
+  releasing the GIL, thus leading to unexpected long frames with the :ref:`Periodic collector
+  <performance/profiling/collectors/periodic>`. This should be detected by the profiler and give a
+  warning. It is possible to trigger the profiler manually before such calls if needed.
+- Pay attention to the cache. Profiling before that the `view`/`assets`/... are in cache can lead to
+  different results.
+- Be aware of the profiler's overhead. The :ref:`SQL collector
+  <performance/profiling/collectors/sql>`'s overhead can be important when a lot of small queries
+  are executed. Profiling is practical to spot a problem but you may want to disable the profiler in
+  order to measure the real impact of a code change.
+- Profiling results can be memory intensive. In some cases (e.g., profiling an install or a long
+  request), it is possible that you reach memory limit, especially when rendering the speedscope
+  results, which can lead to an HTTP 500 error. In this case, you may need to start the server with
+  a higher memory limit: `--limit-memory-hard $((8*1024**3))`.
 
 .. _reference/performance/populate:
 
